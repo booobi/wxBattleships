@@ -1,10 +1,10 @@
 import wx
 import socket
-import pickle
+import cPickle
 import SizeHelpers
 
-
 server_address = ('localhost', 12345)
+
 
 class MainFrame(wx.Frame):
     def __init__(self, *args, **kwargs):
@@ -13,18 +13,18 @@ class MainFrame(wx.Frame):
         self.requestGameInfo()
         self.initUI()
 
-    #request board + turn
-    #enable fire or #waitForOp
+    # request board + turn
+    # enable fire or #waitForOp
     def initConnection(self):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.connect(server_address)
 
     def requestGameInfo(self):
         self.s.send("initialize")
-        print "waiting for initialization data from server" # onInitialWait
-        self.boardArray = self.s.recv(1024)
+        print "waiting for initialization data from server"  # onInitialWait
+        self.ownBoardArray = cPickle.loads(self.s.recv(1024))
         # drawOwnBoard(data)
-        print self.boardArray
+        print self.ownBoardArray
 
     def initUI(self):
         self.mainPanel = wx.Panel(self)
@@ -45,23 +45,33 @@ class MainFrame(wx.Frame):
 
         self.opponentBoardButtons = []
 
-        startX, startY, offsetX, offsetY = 950, 100, 0, 0
+        # oppStartX, oppStartY, oppOffsetX, oppOffsetY = 950, 100, 0, 0
+        # ownStartX, ownStartY, ownOffsetX, ownOffsetY = 200, 100, 0, 0
 
+        ownStartX, oppStartX, startY, offsetX, offsetY = 200, 950, 100, 0, 0
 
         # init own buttons(from recv array)
+        # 2d 10x10 array
 
+        self.ownBoardButtons = []
+        for rowIndex, row in enumerate(list(self.ownBoardArray)):
+            for cellIndex, cell in enumerate(row):
+                # own board buttons
+                ownBoardButton = wx.Button(self.mainPanel, label=cell, size=(40, 40),
+                                           pos=(ownStartX + offsetX, startY + offsetY))
+                ownBoardButton.Disable()
+                self.ownBoardButtons.append(ownBoardButton)
 
-        # init enemy buttons
-        for i in range(100):
-            currentButton = wx.Button(self.mainPanel, label="S", size=(40, 40),
-                                      pos=(startX + offsetX, startY + offsetY), id = i)
-            currentButton.Bind(wx.EVT_BUTTON, self.OnFire)
-            self.opponentBoardButtons.append(currentButton)
-            offsetX += 40
-            if offsetX > 360:
-                offsetY += 40
-                offsetX = 0
+                # opponent board buttons
+                oppBoardButton = wx.Button(self.mainPanel, label="", size=(40, 40),
+                                           pos=(oppStartX + + offsetX, startY + offsetY))
+                oppBoardButton.Bind(wx.EVT_BUTTON, self.OnFire)
+                self.opponentBoardButtons.append(oppBoardButton)
 
+                offsetX += 40
+                if offsetX > 360:
+                    offsetY += 40
+                    offsetX = 0
 
     def OnFire(self, e):
 
@@ -71,9 +81,9 @@ class MainFrame(wx.Frame):
         # result - True/False
         isHit = True
 
-        #if response contains hit onHit
-        #if response contains win! onHit + onWin
-        #if response contains
+        # if response contains hit onHit
+        # if response contains win! onHit + onWin
+        # if response contains
         if isHit:
             btnObj.Disable()
             # print msg
