@@ -22,9 +22,15 @@ class MainFrame(wx.Frame):
     def requestGameInfo(self):
         self.s.send("initialize")
         print "waiting for initialization data from server"  # onInitialWait
-        self.ownBoardArray = cPickle.loads(self.s.recv(1024))
-        # drawOwnBoard(data)
-        print self.ownBoardArray
+        msg = cPickle.loads(self.s.recv(1024))
+        if(msg == "Waiting for player to connect"):
+            #textfield for waiting - tell player is waiting
+            #wait to receive again
+            print "I am waiting for player"
+            msg = cPickle.loads(self.s.recv(1024))
+
+        self.ownBoardArray = msg
+        print "Got board array:", msg
 
     def initUI(self):
         self.mainPanel = wx.Panel(self)
@@ -54,7 +60,7 @@ class MainFrame(wx.Frame):
         # 2d 10x10 array
 
         self.ownBoardButtons = []
-        for rowIndex, row in enumerate(list(self.ownBoardArray)):
+        for rowIndex, row in enumerate(self.ownBoardArray):
             for cellIndex, cell in enumerate(row):
                 # own board buttons
                 ownBoardButton = wx.Button(self.mainPanel, label=cell, size=(40, 40),
@@ -81,21 +87,9 @@ class MainFrame(wx.Frame):
         # result - True/False
         isHit = True
 
-        # if response contains hit onHit
-        # if response contains win! onHit + onWin
-        # if response contains
-        if isHit:
-            btnObj.Disable()
-            # print msg
-        else:
-            # print msg
-            pass
-
-        opponentButtonsLeft = [wx.Button for button in self.opponentBoardButtons if button.IsEnabled()]
-        print btnObj.GetId()
-        if (opponentButtonsLeft == 0):
-            # onWin()
-            pass
+        # if response contains 'hit'  - call onHit
+        # if response contains 'win' - call onHit +  call onWin
+        # if response contains 'miss' - call onMiss
 
 
 app = wx.App()
