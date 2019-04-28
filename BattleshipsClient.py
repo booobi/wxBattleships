@@ -9,23 +9,23 @@ server_address = ('localhost', 12345)
 class MainFrame(wx.Frame):
     def __init__(self, *args, **kwargs):
         super(MainFrame, self).__init__(*args, **kwargs)
-        self.initConnection()
-        self.requestGameInfo()
+        self.initialize_connection()
+        self.request_initial_game_info()
         self.initUI()
 
     # request board + turn
     # enable fire or #waitForOp
-    def initConnection(self):
+    def initialize_connection(self):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.connect(server_address)
 
-    def requestGameInfo(self):
-        self.s.send("initialize")
+    def request_initial_game_info(self):
+        # self.s.send("initialize")
         print "waiting for initialization data from server"  # onInitialWait
         msg = cPickle.loads(self.s.recv(1024))
         if(msg == "Waiting for player to connect"):
             #textfield for waiting - tell player is waiting
-            #wait to receive again
+            #block, wait to receive again
             print "I am waiting for player"
             msg = cPickle.loads(self.s.recv(1024))
 
@@ -40,9 +40,9 @@ class MainFrame(wx.Frame):
 
         self.Show()
         self.Maximize()
-        self.initBoards()
+        self.initialize_boards()
 
-    def initBoards(self):
+    def initialize_boards(self):
         quarterPointX = wx.GetDisplaySize()[0] / 4
         wx.StaticText(self.mainPanel, label="Your board",
                       pos=(quarterPointX - SizeHelpers.getTextSizeX("Your board") / 2, 30))
@@ -83,7 +83,9 @@ class MainFrame(wx.Frame):
 
         btnObj = e.GetEventObject()
         # send guess to server
-        self.s.sendall(str(btnObj.GetId()))
+        btnIndx = self.opponentBoardButtons.index(btnObj)
+
+        self.s.sendall(cPickle.dumps(btnIndx))
         # result - True/False
         isHit = True
 

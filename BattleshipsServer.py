@@ -25,25 +25,20 @@ player2BoardArray = cPickle.dumps([
     ('S', 'S', 'S', 'S', 'S', 'S', 'S', 'S', 'S', 'S'), ('S', 'S', 'S', 'S', 'S', 'S', 'S', 'S', 'S', 'S'),
     ('S', 'S', 'S', 'S', 'S', 'S', 'S', 'S', 'S', 'S'), ('S', 'S', 'S', 'S', 'S', 'S', 'S', 'S', 'S', 'S')])
 
-conn1, addr1 = socket.accept()
-conn1.send(cPickle.dumps("Waiting for player to connect"))
 
-conn2, addr2 = socket.accept()
-conn1.send(player1BoardArray)
-conn2.send(player2BoardArray)
+def register_hit(array, global_indx):
+    pass
 
+
+first_connection, addr1 = socket.accept()
+first_connection.send(cPickle.dumps("Waiting for player to connect"))
+
+second_connection, addr2 = socket.accept()
+first_connection.send(player1BoardArray)
+second_connection.send(player2BoardArray)
+
+gameOver = False
 while True:
-    pass
-
-
-# while True:
-#     data = conn1.recv(1024)
-#     if "initialize" in data:
-#         conn1.send(cPickle.dumps("waiting for player"))
-#     print data, addr1
-#
-# conn.close()
-
-
-def populateShips(grid):
-    pass
+    unparsed_data = first_connection.recv(1024)
+    index_to_check = cPickle.loads(unparsed_data)
+    register_hit(player2BoardArray, index_to_check)
