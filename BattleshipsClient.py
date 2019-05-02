@@ -1,7 +1,6 @@
 import wx
-import socket
-import cPickle
 import SizeHelpers
+from SocketClient import SocketClient
 
 server_address = ('localhost', 12345)
 
@@ -9,6 +8,7 @@ server_address = ('localhost', 12345)
 class MainFrame(wx.Frame):
     def __init__(self, *args, **kwargs):
         super(MainFrame, self).__init__(*args, **kwargs)
+
         self.initialize_connection()
         self.request_initial_game_info()
         self.initUI()
@@ -16,18 +16,18 @@ class MainFrame(wx.Frame):
     # request board + turn
     # enable fire or #waitForOp
     def initialize_connection(self):
-        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.s.connect(server_address)
+        self.sock_client = SocketClient()
+        self.sock_client.initialize_connection(server_address)
 
     def request_initial_game_info(self):
         # self.s.send("initialize")
         print "waiting for initialization data from server"  # onInitialWait
-        msg = cPickle.loads(self.s.recv(1024))
-        if(msg == "Waiting for player to connect"):
-            #textfield for waiting - tell player is waiting
-            #block, wait to receive again
+        msg = self.sock_client.block_wait_data()
+        if (msg == "Waiting for player to connect"):
+            # textfield for waiting - tell player is waiting
+            # block, wait to receive again
             print "I am waiting for player"
-            msg = cPickle.loads(self.s.recv(1024))
+            msg = self.sock_client.block_wait_data()
 
         self.ownBoardArray = msg
         print "Got board array:", msg
@@ -50,9 +50,6 @@ class MainFrame(wx.Frame):
                       pos=(self.sizeX - quarterPointX - SizeHelpers.getTextSizeX("Opponent board") / 2, 30))
 
         self.opponentBoardButtons = []
-
-        # oppStartX, oppStartY, oppOffsetX, oppOffsetY = 950, 100, 0, 0
-        # ownStartX, ownStartY, ownOffsetX, ownOffsetY = 200, 100, 0, 0
 
         ownStartX, oppStartX, startY, offsetX, offsetY = 200, 950, 100, 0, 0
 
@@ -85,7 +82,7 @@ class MainFrame(wx.Frame):
         # send guess to server
         btnIndx = self.opponentBoardButtons.index(btnObj)
 
-        self.s.sendall(cPickle.dumps(btnIndx))
+        self.sock_client.send_data(btnIndx)
         # result - True/False
         isHit = True
 
