@@ -1,6 +1,8 @@
 import wx
 import SizeHelpers
 from SocketClient import SocketClient
+from pubsub import pub
+from ReceiverThread import ReceiverThread
 
 server_address = ('localhost', 12345)
 
@@ -10,39 +12,43 @@ class MainFrame(wx.Frame):
         super(MainFrame, self).__init__(*args, **kwargs)
 
         self.initialize_connection()
-        self.request_initial_game_info()
-        self.initUI()
+        self.initialize_frame_UI()
+        self.initialize_action_text_UI()
+        pub.subscribe(self.initialize_board_data, "initial")
+        pub.subscribe(self.on_waiting_opponent, "wait_connect")
+        # pub.subscribe(self.on_opponent_turn, "wait_turn")
+        # pub.subscribe(self.on_own_turn, "go_turn")
+        ReceiverThread(self.sock_client)
 
     # request board + turn
     # enable fire or #waitForOp
+
     def initialize_connection(self):
         self.sock_client = SocketClient()
         self.sock_client.initialize_connection(server_address)
 
-    def request_initial_game_info(self):
-        # self.s.send("initialize")
-        print "waiting for initialization data from server"  # onInitialWait
-        msg = self.sock_client.block_wait_data()
-        if (msg == "Waiting for player to connect"):
-            # textfield for waiting - tell player is waiting
-            # block, wait to receive again
-            print "I am waiting for player"
-            msg = self.sock_client.block_wait_data()
-
-        self.ownBoardArray = msg
-        print "Got board array:", msg
-
-    def initUI(self):
+    def initialize_frame_UI(self):
         self.mainPanel = wx.Panel(self)
         self.mainPanel.SetFont(wx.SystemSettings.GetFont(0))
 
         self.sizeX, self.sizeY = wx.GetDisplaySize()
 
         self.Show()
-        self.Maximize()
-        self.initialize_boards()
 
-    def initialize_boards(self):
+        self.Maximize()
+
+    def initialize_action_text_UI(self):
+        action_text = "Waiting for opponent to connect ..."
+        self.action_text_field = wx.StaticText(self.mainPanel,
+                                               pos=(775 - SizeHelpers.getTextSizeX(action_text) / 2, 150),
+                                               label=action_text)
+
+    def initialize_board_data(self, arr):
+        self.ownBoardArray = arr
+        wx.CallAfter(self.initialize_boards_UI)
+
+    def initialize_boards_UI(self):
+        print "called init BOARDS"
         quarterPointX = wx.GetDisplaySize()[0] / 4
         wx.StaticText(self.mainPanel, label="Your board",
                       pos=(quarterPointX - SizeHelpers.getTextSizeX("Your board") / 2, 30))
@@ -57,8 +63,8 @@ class MainFrame(wx.Frame):
         # 2d 10x10 array
 
         self.ownBoardButtons = []
-        for rowIndex, row in enumerate(self.ownBoardArray):
-            for cellIndex, cell in enumerate(row):
+        for row in self.ownBoardArray:
+            for cell in row:
                 # own board buttons
                 ownBoardButton = wx.Button(self.mainPanel, label=cell, size=(40, 40),
                                            pos=(ownStartX + offsetX, startY + offsetY))
@@ -66,7 +72,7 @@ class MainFrame(wx.Frame):
                 self.ownBoardButtons.append(ownBoardButton)
 
                 # opponent board buttons
-                oppBoardButton = wx.Button(self.mainPanel, label="", size=(40, 40),
+                oppBoardButton = wx.Button(self.mainPanel, label="A", size=(40, 40),
                                            pos=(oppStartX + + offsetX, startY + offsetY))
                 oppBoardButton.Bind(wx.EVT_BUTTON, self.OnFire)
                 self.opponentBoardButtons.append(oppBoardButton)
@@ -75,6 +81,13 @@ class MainFrame(wx.Frame):
                 if offsetX > 360:
                     offsetY += 40
                     offsetX = 0
+        ReceiverThread(self.sock_client)
+
+    def set_action_text(self, text):
+        self.action_text_field.SetLabelText(text)
+
+    def on_waiting_opponent(self):
+        ReceiverThread(self.sock_client)
 
     def OnFire(self, e):
 

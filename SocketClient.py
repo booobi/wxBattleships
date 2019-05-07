@@ -16,4 +16,5 @@ class SocketClient(object):
 
     def block_wait_data(self):
         """Blocks execution, waits and then returns received data"""
-        return cPickle.loads(self.socket.recv(1024))
+        msg = self.socket.recv(1024)
+        return cPickle.loads(msg)
